@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Power BI TV Rotator</title>
+  <style>
+    :root {
+      --bg: #000;
+      --fg: #fff;
+      --panel: rgba(20, 20, 20, 0.88);
+      --accent: #2d7ff9;
+      --muted: rgba(255, 255, 255, 0.7);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: Arial, Helvetica, sans-serif;
+      overflow: hidden;
+    }
+
+    #app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+    }
+
+    .frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 500ms ease-in-out;
+      background: #000;
+    }
+
+    .frame.active {
+      opacity: 1;
+      z-index: 2;
+      pointer-events: auto;
+    }
+
+    .frame.preloaded {
+      opacity: 0;
+      z-index: 1;
+    }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.75)),
+        #000;
+    }
+
+    #overlay.hidden {
+      display: none;
+    }
+
+    .panel {
+      width: min(92vw, 560px);
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .panel h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+    }
+
+    .panel p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #2a2a2a;
+      color: #fff;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button.primary {
+      background: var(--accent);
+    }
+
+    #hud {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      z-index: 9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .chip {
+      background: rgba(0, 0, 0, 0.45);
+      color: rgba(255, 255, 255, 0.92);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      backdrop-filter: blur(6px);
+      white-space: nowrap;
+    }
+
+    #status {
+      max-width: 60vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #debug {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 9;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(0, 0, 0, 0.45);
+      color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(6px);
+      display: none;
+    }
+
+    body.show-debug #debug {
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <iframe id="frameA" class="frame" title="Power BI A"></iframe>
+    <iframe id="frameB" class="frame" title="Power BI B"></iframe>
+
+    <div id="overlay">
+      <div class="panel">
+        <h1>Painel da TV</h1>
+        <p>
+          Clique em <strong>Iniciar</strong> para começar a rotação das páginas do Power BI.
+        </p>
+        <div class="actions">
+          <button id="startBtn" class="primary">Iniciar</button>
+          <button id="fullscreenBtn">Tela cheia</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="debug"></div>
+
+    <div id="hud">
+      <div id="status" class="chip">Aguardando início…</div>
+      <div id="countdown" class="chip">--</div>
+    </div>
+  </div>
+
+  <script>
+    const config = {
+      settingsReloadIntervalMinutes: 1,
+      fullscreen: true,
+      autoStart: false,
+      lazyLoadTabs: false,
+      closeExistingTabs: true,
+      websites: [
+        {
+          url: "https://app.powerbi.com/view?r=eyJrIjoiNDg4ZjRmNjktMmM1ZS00YTRiLWE0NWUtY2EzY2YyMTU5ZDQ0IiwidCI6ImQxODgzN2QxLWM5ZWQtNGVmOS04NWUwLTc5ZDkyMzc0ZTgxMyJ9",
+          duration: 10,
+          tabReloadIntervalSeconds: 60
+        },
+        {
+          url: "https://app.powerbi.com/view?r=eyJrIjoiMDQ0Y2VhNDMtYmVjMC00MzE4LTg2NjUtM2JjMGM1ZjdiYWMzIiwidCI6ImQxODgzN2QxLWM5ZWQtNGVmOS04NWUwLTc5ZDkyMzc0ZTgxMyJ9&pageName=02c8892ba1b199e841cd",
+          duration: 10,
+          tabReloadIntervalSeconds: 60
+        }
+      ]
+    };
+
+    const frameA = document.getElementById("frameA");
+    const frameB = document.getElementById("frameB");
+    const overlay = document.getElementById("overlay");
+    const startBtn = document.getElementById("startBtn");
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const statusEl = document.getElementById("status");
+    const countdownEl = document.getElementById("countdown");
+    const debugEl = document.getElementById("debug");
+
+    if (new URLSearchParams(window.location.search).get("debug") === "1") {
+      document.body.classList.add("show-debug");
+    }
+
+    let started = false;
+    let currentIndex = 0;
+    let activeFrame = frameA;
+    let standbyFrame = frameB;
+    let switchTimer = null;
+    let countdownTimer = null;
+    let settingsReloadTimer = null;
+    const reloadTimers = new Map();
+    const frameUrlMap = new Map();
+    const lastLoadedAt = new Map();
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+      debugEl.textContent = text;
+    }
+
+    function withCacheBust(url) {
+      const separator = url.includes("?") ? "&" : "?";
+      return `${url}${separator}_tvts=${Date.now()}`;
+    }
+
+    function loadIntoFrame(frame, url, forceReload = false) {
+      const current = frameUrlMap.get(frame);
+
+      if (!forceReload && current === url) {
+        return;
+      }
+
+      frameUrlMap.set(frame, url);
+      lastLoadedAt.set(frame, Date.now());
+      frame.src = withCacheBust(url);
+    }
+
+    function setFrameVisible(frame) {
+      frame.classList.add("active");
+      frame.classList.remove("preloaded");
+    }
+
+    function setFrameHidden(frame) {
+      frame.classList.remove("active");
+      frame.classList.add("preloaded");
+    }
+
+    function enterFullscreen() {
+      if (!config.fullscreen) return;
+
+      const el = document.documentElement;
+      if (!document.fullscreenElement && el.requestFullscreen) {
+        el.requestFullscreen().catch(() => {});
+      }
+    }
+
+    function startCountdown(seconds) {
+      let remaining = seconds;
+      countdownEl.textContent = `${remaining}s`;
+
+      if (countdownTimer) {
+        clearInterval(countdownTimer);
+      }
+
+      countdownTimer = setInterval(() => {
+        remaining -= 1;
+        countdownEl.textContent = `${Math.max(remaining, 0)}s`;
+
+        if (remaining <= 0) {
+          clearInterval(countdownTimer);
+        }
+      }, 1000);
+    }
+
+    function clearAllTimers() {
+      if (switchTimer) clearTimeout(switchTimer);
+      if (countdownTimer) clearInterval(countdownTimer);
+      if (settingsReloadTimer) clearInterval(settingsReloadTimer);
+
+      for (const timerId of reloadTimers.values()) {
+        clearInterval(timerId);
+      }
+      reloadTimers.clear();
+    }
+
+    function setupPerTabReloads() {
+      for (const timerId of reloadTimers.values()) {
+        clearInterval(timerId);
+      }
+      reloadTimers.clear();
+
+      config.websites.forEach((site, index) => {
+        const intervalMs = Math.max(1, site.tabReloadIntervalSeconds) * 1000;
+
+        const timerId = setInterval(() => {
+          const frameForSite =
+            currentIndex === index ? activeFrame : standbyFrame;
+
+          setStatus(`Recarregando página ${index + 1} em segundo plano…`);
+          loadIntoFrame(frameForSite, site.url, true);
+        }, intervalMs);
+
+        reloadTimers.set(index, timerId);
+      });
+    }
+
+    function preloadFrames() {
+      const currentSite = config.websites[currentIndex];
+      const nextIndex = (currentIndex + 1) % config.websites.length;
+      const nextSite = config.websites[nextIndex];
+
+      loadIntoFrame(activeFrame, currentSite.url, true);
+
+      if (!config.lazyLoadTabs) {
+        loadIntoFrame(standbyFrame, nextSite.url, true);
+      }
+    }
+
+    function scheduleNextSwitch() {
+      const currentSite = config.websites[currentIndex];
+      const durationMs = Math.max(1, currentSite.duration) * 1000;
+
+      startCountdown(Math.max(1, currentSite.duration));
+
+      switchTimer = setTimeout(() => {
+        switchToNextSite();
+      }, durationMs);
+    }
+
+    function switchToNextSite() {
+      const nextIndex = (currentIndex + 1) % config.websites.length;
+      const nextSite = config.websites[nextIndex];
+
+      if (config.lazyLoadTabs) {
+        loadIntoFrame(standbyFrame, nextSite.url, true);
+      }
+
+      setFrameHidden(activeFrame);
+      setFrameVisible(standbyFrame);
+
+      const oldActive = activeFrame;
+      activeFrame = standbyFrame;
+      standbyFrame = oldActive;
+
+      currentIndex = nextIndex;
+
+      const preloadIndex = (currentIndex + 1) % config.websites.length;
+      const preloadSite = config.websites[preloadIndex];
+
+      if (!config.lazyLoadTabs) {
+        loadIntoFrame(standbyFrame, preloadSite.url, true);
+      }
+
+      setStatus(`Exibindo página ${currentIndex + 1} de ${config.websites.length}`);
+      scheduleNextSwitch();
+    }
+
+    function setupSettingsReload() {
+      const intervalMs = Math.max(1, config.settingsReloadIntervalMinutes) * 60 * 1000;
+
+      settingsReloadTimer = setInterval(() => {
+        setStatus("Recarregando a aplicação…");
+        window.location.reload();
+      }, intervalMs);
+    }
+
+    function startRotation() {
+      if (started) return;
+      started = true;
+
+      overlay.classList.add("hidden");
+      enterFullscreen();
+
+      currentIndex = 0;
+      clearAllTimers();
+
+      setFrameVisible(activeFrame);
+      setFrameHidden(standbyFrame);
+
+      preloadFrames();
+      setupPerTabReloads();
+      setupSettingsReload();
+
+      setStatus(`Exibindo página ${currentIndex + 1} de ${config.websites.length}`);
+      scheduleNextSwitch();
+    }
+
+    startBtn.addEventListener("click", () => {
+      startRotation();
+    });
+
+    fullscreenBtn.addEventListener("click", () => {
+      enterFullscreen();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) return;
+
+      if (started) {
+        setStatus("Janela retomada. Sincronizando…");
+      }
+    });
+
+    window.addEventListener("beforeunload", () => {
+      clearAllTimers();
+    });
+
+    if (config.autoStart) {
+      startRotation();
+    }
+  </script>
+</body>
+</html>
