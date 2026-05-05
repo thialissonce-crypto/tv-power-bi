@@ -8,9 +8,6 @@
     :root {
       --bg: #000;
       --fg: #fff;
-      --panel: rgba(20, 20, 20, 0.88);
-      --accent: #2d7ff9;
-      --muted: rgba(255, 255, 255, 0.7);
     }
 
     * {
@@ -40,21 +37,13 @@
       width: 100%;
       height: 100%;
       border: 0;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 500ms ease-in-out;
+      display: none;
       background: #000;
     }
 
     .frame.active {
-      opacity: 1;
+      display: block;
       z-index: 2;
-      pointer-events: auto;
-    }
-
-    .frame.preloaded {
-      opacity: 0;
-      z-index: 1;
     }
 
     #overlay {
@@ -64,9 +53,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background:
-        linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.75)),
-        #000;
+      background: #000;
     }
 
     #overlay.hidden {
@@ -74,29 +61,28 @@
     }
 
     .panel {
-      width: min(92vw, 560px);
-      background: var(--panel);
+      width: min(92vw, 520px);
+      background: rgba(20, 20, 20, 0.92);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 24px;
+      border-radius: 12px;
+      padding: 22px;
       text-align: center;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
     }
 
     .panel h1 {
       margin: 0 0 10px;
-      font-size: 28px;
+      font-size: 26px;
     }
 
     .panel p {
-      margin: 0 0 20px;
-      color: var(--muted);
-      line-height: 1.5;
+      margin: 0 0 18px;
+      color: rgba(255, 255, 255, 0.78);
+      line-height: 1.45;
     }
 
     .actions {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       justify-content: center;
       flex-wrap: wrap;
     }
@@ -110,24 +96,19 @@
       cursor: pointer;
       background: #2a2a2a;
       color: #fff;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-    }
-
-    button:hover {
-      transform: translateY(-1px);
     }
 
     button.primary {
-      background: var(--accent);
+      background: #2d7ff9;
     }
 
     #hud {
       position: absolute;
-      left: 14px;
-      right: 14px;
-      bottom: 14px;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
       z-index: 9;
-      display: flex;
+      display: none;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
@@ -135,12 +116,11 @@
     }
 
     .chip {
-      background: rgba(0, 0, 0, 0.45);
+      background: rgba(0, 0, 0, 0.55);
       color: rgba(255, 255, 255, 0.92);
-      padding: 8px 12px;
+      padding: 7px 11px;
       border-radius: 999px;
-      font-size: 13px;
-      backdrop-filter: blur(6px);
+      font-size: 12px;
       white-space: nowrap;
     }
 
@@ -150,44 +130,27 @@
       text-overflow: ellipsis;
     }
 
-    #debug {
-      position: absolute;
-      top: 14px;
-      left: 14px;
-      z-index: 9;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      background: rgba(0, 0, 0, 0.45);
-      color: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(6px);
-      display: none;
-    }
-
-    body.show-debug #debug {
-      display: inline-block;
+    body.show-hud #hud {
+      display: flex;
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <iframe id="frameA" class="frame" title="Power BI A"></iframe>
-    <iframe id="frameB" class="frame" title="Power BI B"></iframe>
+    <iframe id="frame0" class="frame" title="Power BI 1"></iframe>
+    <iframe id="frame1" class="frame" title="Power BI 2"></iframe>
+    <iframe id="frame2" class="frame" title="Power BI 3"></iframe>
 
     <div id="overlay">
       <div class="panel">
         <h1>Painel da TV</h1>
-        <p>
-          Clique em <strong>Iniciar</strong> para começar a rotação das páginas do Power BI.
-        </p>
+        <p>Clique em <strong>Iniciar</strong> para abrir o painel em tela cheia e começar a rotação.</p>
         <div class="actions">
           <button id="startBtn" class="primary">Iniciar</button>
           <button id="fullscreenBtn">Tela cheia</button>
         </div>
       </div>
     </div>
-
-    <div id="debug"></div>
 
     <div id="hud">
       <div id="status" class="chip">Aguardando início…</div>
@@ -197,79 +160,57 @@
 
   <script>
     const config = {
-      settingsReloadIntervalMinutes: 1200,
+      settingsReloadIntervalMinutes: 720,
       fullscreen: true,
-      autoStart: false,
+      autoStart: true,
       lazyLoadTabs: false,
-      closeExistingTabs: true,
+      showHud: false,
       websites: [
         {
-          url: "https://app.powerbi.com/view?r=eyJrIjoiMDQ0Y2VhNDMtYmVjMC00MzE4LTg2NjUtM2JjMGM1ZjdiYWMzIiwidCI6ImQxODgzN2QxLWM5ZWQtNGVmOS04NWUwLTc5ZDkyMzc0ZTgxMyJ9&pageName=ReportSectioneaad29fa56dd0bb523ac",
-          duration: 20,
+          url: "https://app.powerbi.com/view?r=eyJrIjoiMDQ0Y2VhNDMtYmVjMC00MzE4LTg2NjUtM2JjMGM1ZjdiYWMzIiwidCI6ImQxODgzN2QxLWM5ZWQtNGVmOS04NWUwLTc5ZDkyMzc0ZTgxMyJ9&pageName=8c65a5bd9dc5ea7ecb42",
+          duration: 35,
+          tabReloadIntervalSeconds: 1800
+        },
+        {
+          url: "https://app.powerbi.com/view?r=eyJrIjoiMDQ0Y2VhNDMtYmVjMC00MzE4LTg2NjUtM2JjMGM1ZjdiYWMzIiwidCI6ImQxODgzN2QxLWM5ZWQtNGVmOS04NWUwLTc5ZDkyMzc0ZTgxMyJ9&pageName=cc948bfb5e8b00603019",
+          duration: 35,
           tabReloadIntervalSeconds: 1800
         },
         {
           url: "https://app.powerbi.com/view?r=eyJrIjoiMDQ0Y2VhNDMtYmVjMC00MzE4LTg2NjUtM2JjMGM1ZjdiYWMzIiwidCI6ImQxODgzN2QxLWM5ZWQtNGVmOS04NWUwLTc5ZDkyMzc0ZTgxMyJ9&pageName=02c8892ba1b199e841cd",
-          duration: 20,
+          duration: 35,
           tabReloadIntervalSeconds: 1800
         }
       ]
     };
 
-    const frameA = document.getElementById("frameA");
-    const frameB = document.getElementById("frameB");
+    const frames = config.websites.map((_, index) => document.getElementById(`frame${index}`));
     const overlay = document.getElementById("overlay");
     const startBtn = document.getElementById("startBtn");
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     const statusEl = document.getElementById("status");
     const countdownEl = document.getElementById("countdown");
-    const debugEl = document.getElementById("debug");
 
-    if (new URLSearchParams(window.location.search).get("debug") === "1") {
-      document.body.classList.add("show-debug");
+    if (config.showHud) {
+      document.body.classList.add("show-hud");
     }
 
     let started = false;
     let currentIndex = 0;
-    let activeFrame = frameA;
-    let standbyFrame = frameB;
     let switchTimer = null;
     let countdownTimer = null;
     let settingsReloadTimer = null;
-    const reloadTimers = new Map();
-    const frameUrlMap = new Map();
-    const lastLoadedAt = new Map();
+    let backgroundReloadTimer = null;
+    let currentSiteStartedAt = 0;
+    const lastReloadAtBySite = new Map();
+
+    function cacheBustUrl(url) {
+      const separator = url.includes("?") ? "&" : "?";
+      return `${url}${separator}_tvReload=${Date.now()}`;
+    }
 
     function setStatus(text) {
       statusEl.textContent = text;
-      debugEl.textContent = text;
-    }
-
-    function withCacheBust(url) {
-      const separator = url.includes("?") ? "&" : "?";
-      return `${url}${separator}_tvts=${Date.now()}`;
-    }
-
-    function loadIntoFrame(frame, url, forceReload = false) {
-      const current = frameUrlMap.get(frame);
-
-      if (!forceReload && current === url) {
-        return;
-      }
-
-      frameUrlMap.set(frame, url);
-      lastLoadedAt.set(frame, Date.now());
-      frame.src = withCacheBust(url);
-    }
-
-    function setFrameVisible(frame) {
-      frame.classList.add("active");
-      frame.classList.remove("preloaded");
-    }
-
-    function setFrameHidden(frame) {
-      frame.classList.remove("active");
-      frame.classList.add("preloaded");
     }
 
     function enterFullscreen() {
@@ -281,13 +222,41 @@
       }
     }
 
+    function markSiteReload(siteIndex) {
+      lastReloadAtBySite.set(siteIndex, Date.now());
+    }
+
+    function shouldReloadSite(siteIndex) {
+      const site = config.websites[siteIndex];
+      const intervalMs = Math.max(60, site.tabReloadIntervalSeconds || 1800) * 1000;
+      const lastReloadAt = lastReloadAtBySite.get(siteIndex) || 0;
+      return Date.now() - lastReloadAt >= intervalMs;
+    }
+
+    function preloadAllFrames() {
+      config.websites.forEach((site, index) => {
+        const frame = frames[index];
+        if (!frame) return;
+
+        if (!frame.src) {
+          frame.src = site.url;
+          markSiteReload(index);
+        }
+      });
+    }
+
+    function showFrame(index) {
+      frames.forEach((frame, frameIndex) => {
+        if (!frame) return;
+        frame.classList.toggle("active", frameIndex === index);
+      });
+    }
+
     function startCountdown(seconds) {
       let remaining = seconds;
       countdownEl.textContent = `${remaining}s`;
 
-      if (countdownTimer) {
-        clearInterval(countdownTimer);
-      }
+      if (countdownTimer) clearInterval(countdownTimer);
 
       countdownTimer = setInterval(() => {
         remaining -= 1;
@@ -303,92 +272,51 @@
       if (switchTimer) clearTimeout(switchTimer);
       if (countdownTimer) clearInterval(countdownTimer);
       if (settingsReloadTimer) clearInterval(settingsReloadTimer);
-
-      for (const timerId of reloadTimers.values()) {
-        clearInterval(timerId);
-      }
-      reloadTimers.clear();
+      if (backgroundReloadTimer) clearInterval(backgroundReloadTimer);
     }
 
-    function setupPerTabReloads() {
-      for (const timerId of reloadTimers.values()) {
-        clearInterval(timerId);
-      }
-      reloadTimers.clear();
+    function scheduleCurrentPage() {
+      const site = config.websites[currentIndex];
 
-      config.websites.forEach((site, index) => {
-        const intervalMs = Math.max(1, site.tabReloadIntervalSeconds) * 1000;
+      currentSiteStartedAt = Date.now();
+      setStatus(`Exibindo página ${currentIndex + 1} de ${config.websites.length}`);
+      startCountdown(Math.max(1, site.duration));
 
-        const timerId = setInterval(() => {
-          const frameForSite =
-            currentIndex === index ? activeFrame : standbyFrame;
-
-          setStatus(`Recarregando página ${index + 1} em segundo plano…`);
-          loadIntoFrame(frameForSite, site.url, true);
-        }, intervalMs);
-
-        reloadTimers.set(index, timerId);
-      });
-    }
-
-    function preloadFrames() {
-      const currentSite = config.websites[currentIndex];
-      const nextIndex = (currentIndex + 1) % config.websites.length;
-      const nextSite = config.websites[nextIndex];
-
-      loadIntoFrame(activeFrame, currentSite.url, true);
-
-      if (!config.lazyLoadTabs) {
-        loadIntoFrame(standbyFrame, nextSite.url, true);
-      }
-    }
-
-    function scheduleNextSwitch() {
-      const currentSite = config.websites[currentIndex];
-      const durationMs = Math.max(1, currentSite.duration) * 1000;
-
-      startCountdown(Math.max(1, currentSite.duration));
-
-      switchTimer = setTimeout(() => {
-        switchToNextSite();
-      }, durationMs);
+      if (switchTimer) clearTimeout(switchTimer);
+      switchTimer = setTimeout(switchToNextSite, Math.max(1, site.duration) * 1000);
     }
 
     function switchToNextSite() {
-      const nextIndex = (currentIndex + 1) % config.websites.length;
-      const nextSite = config.websites[nextIndex];
+      currentIndex = (currentIndex + 1) % config.websites.length;
+      showFrame(currentIndex);
+      scheduleCurrentPage();
+    }
 
-      if (config.lazyLoadTabs) {
-        loadIntoFrame(standbyFrame, nextSite.url, true);
-      }
+    function reloadInactiveFramesInBackground() {
+      config.websites.forEach((site, index) => {
+        if (index === currentIndex) return;
+        if (!shouldReloadSite(index)) return;
 
-      setFrameHidden(activeFrame);
-      setFrameVisible(standbyFrame);
+        const frame = frames[index];
+        if (!frame) return;
 
-      const oldActive = activeFrame;
-      activeFrame = standbyFrame;
-      standbyFrame = oldActive;
-
-      currentIndex = nextIndex;
-
-      const preloadIndex = (currentIndex + 1) % config.websites.length;
-      const preloadSite = config.websites[preloadIndex];
-
-      if (!config.lazyLoadTabs) {
-        loadIntoFrame(standbyFrame, preloadSite.url, true);
-      }
-
-      setStatus(`Exibindo página ${currentIndex + 1} de ${config.websites.length}`);
-      scheduleNextSwitch();
+        // Recarrega só o que está escondido, para não aparecer tela carregando na TV.
+        frame.src = cacheBustUrl(site.url);
+        markSiteReload(index);
+      });
     }
 
     function setupSettingsReload() {
-      const intervalMs = Math.max(1, config.settingsReloadIntervalMinutes) * 60 * 1000;
+      const intervalMs = Math.max(60, config.settingsReloadIntervalMinutes || 720) * 60 * 1000;
 
       settingsReloadTimer = setInterval(() => {
         setStatus("Recarregando a aplicação…");
         window.location.reload();
       }, intervalMs);
+    }
+
+    function setupBackgroundReload() {
+      backgroundReloadTimer = setInterval(reloadInactiveFramesInBackground, 60 * 1000);
     }
 
     function startRotation() {
@@ -397,40 +325,36 @@
 
       overlay.classList.add("hidden");
       enterFullscreen();
-
-      currentIndex = 0;
       clearAllTimers();
 
-      setFrameVisible(activeFrame);
-      setFrameHidden(standbyFrame);
-
-      preloadFrames();
-      setupPerTabReloads();
+      currentIndex = 0;
+      preloadAllFrames();
+      showFrame(currentIndex);
+      scheduleCurrentPage();
       setupSettingsReload();
-
-      setStatus(`Exibindo página ${currentIndex + 1} de ${config.websites.length}`);
-      scheduleNextSwitch();
+      setupBackgroundReload();
     }
 
-    startBtn.addEventListener("click", () => {
-      startRotation();
-    });
-
-    fullscreenBtn.addEventListener("click", () => {
-      enterFullscreen();
-    });
+    startBtn.addEventListener("click", startRotation);
+    fullscreenBtn.addEventListener("click", enterFullscreen);
 
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) return;
+      if (document.hidden || !started) return;
 
-      if (started) {
-        setStatus("Janela retomada. Sincronizando…");
+      const currentSite = config.websites[currentIndex];
+      const elapsedSeconds = Math.floor((Date.now() - currentSiteStartedAt) / 1000);
+
+      if (elapsedSeconds >= currentSite.duration) {
+        switchToNextSite();
+      } else {
+        startCountdown(Math.max(0, currentSite.duration - elapsedSeconds));
       }
     });
 
-    window.addEventListener("beforeunload", () => {
-      clearAllTimers();
-    });
+    window.addEventListener("beforeunload", clearAllTimers);
+
+    // Tenta pré-carregar ainda na tela inicial. A tela cheia só entra depois do clique.
+    preloadAllFrames();
 
     if (config.autoStart) {
       startRotation();
